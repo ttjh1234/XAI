@@ -30,6 +30,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
 from tensorflow.keras.datasets import cifar10
 from sklearn.model_selection import train_test_split
+import pydotplus as pydot
+
 # Data import and preprocess
 
 #dataset,info=tfds.load("cifar10",with_info=True)
@@ -119,6 +121,7 @@ model.add(tf.keras.layers.Dense(1,activation='sigmoid'))
 
 model.summary()
 
+tf.keras.utils.plot_model(model,to_file='c://Users/UOS/Desktop/model.png')
 
 early_cb=tf.keras.callbacks.EarlyStopping(patience=20,restore_best_weights=True)
 opt= tf.keras.optimizers.Adam()
