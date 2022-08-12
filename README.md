@@ -1,9 +1,12 @@
 # XAI
 Explainable AI Paper Implement
 
-1. Axiomatic Attribution for Deep Networks.
+1. Axiomatic Attribution for Deep Networks. : Integrated Gradients
+
 : https://arxiv.org/abs/1703.01365
 
+
+#
 @article{,
 title= {CIFAR-10 (Canadian Institute for Advanced Research)},
 journal= {},
