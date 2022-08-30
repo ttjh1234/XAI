@@ -72,15 +72,16 @@ for i in range(3):
 
 for i in range(3):
     newx_tr[:,:,:,i] = xtrain[:,:,:,i] - mean[i]
-    newx_tr[:,:,:,i] = xtrain[:,:,:,i] / std[i]
+    newx_tr[:,:,:,i] = newx_tr[:,:,:,i] / std[i]
     newx_ts[:,:,:,i] = xtest[:,:,:,i] - mean[i]
-    newx_ts[:,:,:,i] = xtest[:,:,:,i] / std[i]
+    newx_ts[:,:,:,i] = newx_ts[:,:,:,i] / std[i]
 
 xtrain=newx_tr
 xtest=newx_ts
 x_t,x_v,y_t,y_v=train_test_split(xtrain,ytrain,test_size=0.1,stratify=ytrain,random_state=42)
 
 x_t.shape
+x_v.shape
 y_t2=np.int64(y_t)
 y_v2=np.int64(y_v)
 
@@ -95,8 +96,8 @@ y_t=tf.where(y_t==2,0,1)
 y_v=tf.where(y_v==2,0,1)
 
 datagen = ImageDataGenerator(
-    featurewise_center=False,
-    featurewise_std_normalization=False,
+    featurewise_center=True,
+    featurewise_std_normalization=True,
     rotation_range=20,
     width_shift_range=0.2,
     height_shift_range=0.2,
@@ -109,15 +110,15 @@ datagen.fit(x_t)
 # model define
 
 model = Sequential()
-model.add(Conv2D(16, 3,padding='same',activation='tanh',input_shape=(32, 32, 3)))
+model.add(Conv2D(16, 3,use_bias=False,padding='same',activation='tanh',input_shape=(32, 32, 3)))
 model.add(MaxPooling2D((2,2)))
-model.add(Conv2D(64, 3, activation='tanh',padding='same'))
+model.add(Conv2D(64, 3,use_bias=False, activation='tanh',padding='same'))
 model.add(MaxPooling2D((2,2)))
-model.add(Conv2D(128, 3, activation='tanh',padding='same'))
+model.add(Conv2D(128, 3,use_bias=False, activation='tanh',padding='same'))
 model.add(MaxPooling2D((2,2)))
 model.add(tf.keras.layers.Flatten())
-model.add(tf.keras.layers.Dense(64,activation='relu'))
-model.add(tf.keras.layers.Dense(1,activation='sigmoid'))
+model.add(tf.keras.layers.Dense(64,use_bias=False,activation='relu'))
+model.add(tf.keras.layers.Dense(1,use_bias=False,activation='sigmoid'))
 
 model.summary()
 
@@ -139,11 +140,21 @@ pv=tf.where(pred_valid>=0.5,1,0)
 print("Train accuracy : ",accuracy_score(pt,y_t)," Valid accuracy : ", accuracy_score(pv,y_v))
 
 os.getcwd()
+os.chdir("../")
 
 # experiment1 16 64 64 32
 model.save_weights("./model/experiment1.h5")
 # experiment1 16 64 128 64
 model.save_weights("./model/experiment2.h5")
+# experiment1 16 64 128 64 no bias but strange Normarization
+model.save_weights("./model/experiment3.h5")
+# experiment1 16 64 128 64 no bias & Normarization
+model.save_weights("./model/experiment4.h5")
+# experiment1 16 64 128 64 no bias & Normarization No bias
+model.save_weights("./model/experiment5.h5")
+
+# experiment1 16 64 128 64 no bias & Normarization No bias all layers
+model.save_weights("./model/experiment6.h5")
 
 # Baseline Visualization
 black=tf.zeros((32,32,3))
@@ -180,6 +191,15 @@ pred_train=model.predict(x_t)
 pt=tf.where(pred_train>=0.5,1,0)
 pt
 accuracy_score(pt,y_t)
+
+baseline11=baseline.numpy()
+for i in range(3):
+  baseline11[:,:,i]=baseline11[:,:,i]-mean[i]
+  baseline11[:,:,i]=baseline11[:,:,i]/std[i]
+
+
+model.predict(tf.expand_dims(baseline,axis=0))
+
 
 y_t[0]
 cat=x_t[0]
@@ -241,10 +261,25 @@ def integrated_gradients(baseline,
   scaled_integrated_gradients = (image - baseline) * integrated_gradients
   return scaled_integrated_gradients
 
+baseline=tf.zeros((32,32,3))
+
 result1=integrated_gradients(baseline,cat,m_steps=300,batch_size=32)
 result2=integrated_gradients(baseline,bird,m_steps=300,batch_size=32)
+
+
+result11=result1.numpy()
+for i in range(3):
+  result11[:,:,i]=result11[:,:,i]*std[i]
+  result11[:,:,i]=result11[:,:,i]+mean[i]
+
+result22=result2.numpy()
+for i in range(3):
+  result22[:,:,i]=result22[:,:,i]*std[i]
+  result22[:,:,i]=result22[:,:,i]+mean[i]
+
 plt.imshow(result1)
 plt.imshow(result2)
-plt.imshow(cat/255.0)
-plt.imshow(bird/255.0)
+
+plt.imshow(result11/255)
+plt.imshow(result22/255)
 
