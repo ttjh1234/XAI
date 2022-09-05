@@ -156,6 +156,7 @@ model.save_weights("./model/experiment5.h5")
 # experiment1 16 64 128 64 no bias & Normarization No bias all layers
 model.save_weights("./model/experiment6.h5")
 
+model.load_weights(r"C:\Users\UOS\Desktop\Sungsu\github\XAI\Integrated_gradient\model\experiment6.h5")
 # Baseline Visualization
 black=tf.zeros((32,32,3))
 plt.imshow(black)
@@ -202,7 +203,7 @@ model.predict(tf.expand_dims(baseline,axis=0))
 
 
 y_t[0]
-cat=x_t[0]
+cat=x_t[1]
 bird=x_t[2]
 plt.imshow(tf.reshape(cat,(32,32,3)))
 plt.imshow(tf.reshape(bird,(32,32,3)))
@@ -282,4 +283,40 @@ plt.imshow(result2)
 
 plt.imshow(result11/255)
 plt.imshow(result22/255)
+
+
+cat2=cat.numpy()
+for i in range(3):
+  cat2[:,:,i]=cat2[:,:,i]*std[i]
+  cat2[:,:,i]=cat2[:,:,i]+mean[i]
+
+plt.imshow(cat2/255)
+
+bird2=bird.numpy()
+for i in range(3):
+  bird2[:,:,i]=bird2[:,:,i]*std[i]
+  bird2[:,:,i]=bird2[:,:,i]+mean[i]
+
+plt.imshow(bird2/255)
+
+fig=plt.figure()
+ax1=fig.add_subplot(1,2,1)
+ax2=fig.add_subplot(1,2,2)
+ax1.imshow(cat2/255)
+ax1.axis("off")
+ax2.imshow(result11/255)
+ax2.axis("off")
+plt.show()
+
+
+fig=plt.figure()
+ax1=fig.add_subplot(1,2,1)
+ax2=fig.add_subplot(1,2,2)
+ax1.imshow(bird2/255)
+ax1.axis("off")
+ax2.imshow(result22/255)
+ax2.axis("off")
+plt.show()
+
+
 
