@@ -318,5 +318,6 @@ ax2.imshow(result22/255)
 ax2.axis("off")
 plt.show()
 
+image_merged=cv2.addWeighted(bird2,0.4,result22,0.6,0)
 
-
+plt.imshow(image_merged/255)
