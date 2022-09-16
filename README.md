@@ -5,6 +5,9 @@ Explainable AI Paper Implement
 
 : https://arxiv.org/abs/1703.01365
 
+2. Grad-CAM : Visual Explanations from Deep Networks via Gradient-based Localization
+
+: https://arxiv.org/abs/1610.02391
 
 #
 @article{,
