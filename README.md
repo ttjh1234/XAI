@@ -9,6 +9,8 @@ Explainable AI Paper Implement
 
 : https://arxiv.org/abs/1610.02391
 
+3. Interpretable Machine Learning - A Guide for Making Black Box Models Interpertable, Christoph Molnar
+
 #
 @article{,
 title= {CIFAR-10 (Canadian Institute for Advanced Research)},
@@ -21,4 +23,18 @@ abstract= {The CIFAR-10 dataset consists of 60000 32x32 colour images in 10 clas
 The dataset is divided into five training batches and one test batch, each with 10000 images. The test batch contains exactly 1000 randomly-selected images from each class. The training batches contain the remaining images in random order, but some training batches may contain more images from one class than another. Between them, the training batches contain exactly 5000 images from each class. },
 keywords= {Dataset},
 terms= {}
+}
+
+
+@article{
+year={2013},
+issn={2192-6352},
+journal={Progress in Artificial Intelligence},
+doi={10.1007/s13748-013-0040-3},
+title={Event labeling combining ensemble detectors and background knowledge},
+url={[Web Link]},
+publisher={Springer Berlin Heidelberg},
+keywords={Event labeling; Event detection; Ensemble learning; Background knowledge},
+author={Fanaee-T, Hadi and Gama, Joao},
+pages={1-15}
 }
