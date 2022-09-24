@@ -14,7 +14,7 @@ import os
 from data import data_preprocess
 import matplotlib.pyplot as plt
 
-data=data_preprocess(r"C:\Users\UOS\Desktop\data\Bike-Sharing-Dataset\day.csv")
+data=data_preprocess(r"--")
 
 feat_list=[i for n,i in enumerate(data.columns) if n!=10]
 x=data.loc[:,feat_list]

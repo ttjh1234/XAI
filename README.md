@@ -9,7 +9,7 @@ Explainable AI Paper Implement
 
 : https://arxiv.org/abs/1610.02391
 
-3. Interpretable Machine Learning - A Guide for Making Black Box Models Interpertable, Christoph Molnar
+3. Interpretable Machine Learning - A Guide for Making Black Box Models Interpretable, Christoph Molnar
 
 #
 ```console

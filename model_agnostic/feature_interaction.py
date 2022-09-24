@@ -20,12 +20,15 @@ PD_j(x_j) and PD_k(x_k) the partial dependence functions of the single features.
 
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
 import numpy as np
 import os
 from data import data_preprocess
 import matplotlib.pyplot as plt
 
-data=data_preprocess(r"C:\Users\UOS\Desktop\data\Bike-Sharing-Dataset\day.csv")
+
+data=data_preprocess(r"--")
+
 
 feat_list=[i for n,i in enumerate(data.columns) if n!=10]
 x=data.loc[:,feat_list]
@@ -35,7 +38,10 @@ x=pd.get_dummies(x)
 reg=RandomForestRegressor(random_state=42)
 reg.fit(x,y)
 
-yhat=reg.predict(x)
+reg2=SVR(kernel="rbf", C=10000, gamma=0.1, epsilon=0.1)
+reg2.fit(x,y)
+
+yhat=reg2.predict(x)
 
 plt.plot(y, color='green',linewidth=5, alpha=0.5, label='True')
 plt.plot(yhat,color="yellow",alpha=0.5,label="Predict")
@@ -84,6 +90,9 @@ def feature_interaction(data,feature_list,model):
         pdc=collective_partial_dependence_function(data,feature_list,model)
         result=pd.merge(pdc,pdi1,left_on=feature_list[0],right_on=feature_list[0])
         result=pd.merge(result,pdi2,left_on=feature_list[1],right_on=feature_list[1])
+        result['fhat']=result['fhat']-np.mean(result['fhat'])
+        result[feature_list[0]+"_"+"fhat"]=result[feature_list[0]+"_"+"fhat"]-np.mean(result[feature_list[0]+"_"+"fhat"])
+        result[feature_list[1]+"_"+"fhat"]=result[feature_list[1]+"_"+"fhat"]-np.mean(result[feature_list[1]+"_"+"fhat"])
         result['result']=((result['fhat']-result[feature_list[0]+"_"+"fhat"]-result[feature_list[1]+"_"+"fhat"])**2)/np.sum(result['fhat']**2)
         return np.sum(result['result'])
     else:
@@ -94,6 +103,11 @@ def feature_interaction(data,feature_list,model):
         pdc[feature_list[0]]=data[feature_list[0]]
         result=pd.merge(pdc,pdi1,left_on=feature_list[0],right_on=feature_list[0])
         pred=model.predict(data)
+        pred=pred-np.mean(pred)
+        result[feature_list[0]+"_"+"fhat"]=result[feature_list[0]+"_"+"fhat"]-np.mean(result[feature_list[0]+"_"+"fhat"])
+        result['fhat']=result['fhat']-np.mean(result['fhat'])
         result['result']=((pred-result[feature_list[0]+"_"+"fhat"]-result['fhat'])**2)/np.sum(pred**2)
         return np.sum(result['result'])
+
+
 
