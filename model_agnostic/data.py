@@ -1,5 +1,11 @@
 # Example UCI Datasets : Bike Sharing Dataset
 
+'''
+
+Origin is at R data, but implement python version.
+
+'''
+
 import pandas as pd
 
 def data_preprocess(path):
