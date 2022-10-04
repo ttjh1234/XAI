@@ -11,6 +11,10 @@ Explainable AI Paper Implement
 
 3. Interpretable Machine Learning - A Guide for Making Black Box Models Interpretable, Christoph Molnar
 
+4. Discretized Integrated Gradients for Explaining Language Models , Soumya Sanyal, Xiang Ren
+
+: https://arxiv.org/abs/2108.13654
+
 #
 ```console
 @article{,
