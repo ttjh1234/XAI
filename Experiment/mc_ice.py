@@ -4,6 +4,7 @@ import numpy as np
 import os
 from data import data_preprocess
 import matplotlib.pyplot as plt
+from scipy.stats import beta
 
 os.getcwd()
 
@@ -316,7 +317,7 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
             data2[feature]=i
             temp_result=model.predict(data2)
             mean_temp=np.mean(temp_result)
-            std_temp=np.std(temp_result)
+            std_temp=np.sqrt(np.var(temp_result)/500)
             fhat.append(mean_temp)
             std_list.append(std_temp)
     elif method=='antithetic':
@@ -330,11 +331,76 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
             data4[feature]=i
             temp_result1=model.predict(data3)
             temp_result2=model.predict(data4)
-            temp_result=temp_result1+temp_result2
-            mean_temp=np.mean(temp_result)/2
-            std_temp=np.std(temp_result)+1/500*np.cov(temp_result1,temp_result2)[0,1]
+            temp_result=(temp_result1+temp_result2)/2
+            mean_temp=np.mean(temp_result)
+            #std_temp=np.sqrt(np.var(temp_result1)/1000+np.var(temp_result2)/1000+1/500*np.cov(temp_result1,temp_result2)[0,1])
+            std_temp=np.sqrt(np.var(temp_result)/500)
             fhat.append(mean_temp)
             std_list.append(std_temp)
+    elif method=='control':
+        np.random.seed(41)
+        index=np.random.choice(data2.shape[0],500)
+        data2=data2.iloc[index,:].reset_index().drop('index',axis=1)
+        r=data2[feature].mean()
+        feat=data2[feature]
+        
+        for i in interest_feature:
+            data2[feature]=i
+            temp_result=model.predict(data2)
+            alpha=np.cov(temp_result,feat)[0,1]/np.var(feat)
+            temp_result2=temp_result-alpha*(feat-r)
+            mean_temp=np.mean(temp_result2)
+            std_temp=np.sqrt(np.var(temp_result2)/500)
+            fhat.append(mean_temp)
+            std_list.append(std_temp)
+    
+    elif method=='stratified':
+        n1=data2.loc[data2['season_Spring']==1,:].shape[0]
+        n2=data2.loc[data2['season_Summer']==1,:].shape[0]
+        n3=data2.loc[data2['season_Fall']==1,:].shape[0]
+        n4=data2.loc[data2['season_Winter']==1,:].shape[0]
+        
+        index_list=[]
+        
+        for n,feat in zip([n1,n2,n3,n4],['season_Spring','season_Summer','season_Fall','season_Winter']): 
+            np.random.seed(41)
+            n=int(n/(n1+n2+n3+n4)*500)
+            index_list=index_list+list(np.random.choice(data2.loc[data2[feat]==1].index,n))
+        
+        data2=data2.iloc[index_list,:].reset_index().drop('index',axis=1)
+        for i in interest_feature:
+            data2[feature]=i
+            temp_result=model.predict(data2)
+            mean_temp=np.mean(temp_result)
+            std_temp=np.sqrt(np.var(temp_result)/500)
+            fhat.append(mean_temp)
+            std_list.append(std_temp)
+            
+    elif method=='importance':
+        np.random.seed(41)
+        index=np.random.choice(data2.shape[0],500)
+        data2=data2.iloc[index,:].reset_index().drop('index',axis=1)
+        
+        # variance minimization method
+        # minimize 1/N sum(H(x_i)^2 * W(Xi;u,v))
+        # find parameter v
+        index2=index/731
+        for i in interest_feature:
+            data2[feature]=i
+            temp_result=model.predict(data2)
+
+            func_list=[]
+            for a in np.arange(0.1,3,step=0.1):
+                for b in np.arange(0.1,3,step=0.1):
+                    func_list.append(np.mean(temp_result**2/(beta(a,b).pdf(index2))))
+            number=np.argmin(func_list)
+            np.arange(0.1,5,step=0.1).shape
+            a,b=np.arange(0.1,5,step=0.1)[(number//29)],np.arange(0.1,5,step=0.1)[(number%29)]
+            mean_temp=np.mean(temp_result/beta(a,b).pdf(index2))
+            std_temp=np.sqrt(np.var(temp_result/beta(a,b).pdf(index2))/500)
+            fhat.append(mean_temp)
+            std_list.append(std_temp)
+        
     
     max_value=np.max(fhat)
     min_value=np.min(fhat)
@@ -367,8 +433,11 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
 
 partial_dependence_plot(x,"temp",reg,method='crude')
 partial_dependence_plot(x,"temp",reg,mode='confidence',method='crude')
+partial_dependence_plot(x,"temp",reg,mode='confidence',method='antithetic')
+partial_dependence_plot(x,"temp",reg,mode='confidence',method='control')
+partial_dependence_plot(x,"temp",reg,mode='confidence',method='stratified')
+partial_dependence_plot(x,"temp",reg,mode='confidence',method='importance')
 
-partial_dependence_plot(x,"temp",reg,method='antithetic')
 
 
 
