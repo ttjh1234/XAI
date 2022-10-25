@@ -78,49 +78,7 @@ def centered_individual_conditional_expectation_plot(data,feature,model,anchor_p
     #plt.ylim(min_value-iqr,max_value+iqr)
     plt.ylabel("Model Predict")
     plt.title("Centered Individual Conditional Expecataion about {}".format(feature))
-    plt.show()
-
-def partial_dependence_plot(data,feature,model):
-    interest_feature=np.sort(data[feature].unique())    
-    fhat=[]
-    std_list=[]
-    data2=data.copy()
-    
-    for i in interest_feature:
-        data2[feature]=i
-        temp_result=model.predict(data2)
-        mean_temp=np.mean(temp_result)
-        std_temp=np.std(temp_result)
-        fhat.append(mean_temp)
-        std_list.append(std_temp)
-    
-    max_value=np.max(fhat)
-    min_value=np.min(fhat)
-    q3=np.quantile(fhat,q=0.75)
-    q1=np.quantile(fhat,q=0.25)
-    iqr=q3-q1
-    
-    plt.plot(list(interest_feature),fhat,color="black",label='mean_value')
-    plt.plot(list(interest_feature),np.array(fhat)-1.96*np.array(std_list)/np.sqrt(std_list),color="red",label='Asymtotic belt')
-    plt.plot(list(interest_feature),np.array(fhat)+1.96*np.array(std_list)/np.sqrt(std_list),color="red")
-    
-    plt.xlabel(feature)
-    #plt.ylim(min_value-1.5*iqr,max_value+1.5*iqr)
-    plt.ylabel("Model Predict")
-    plt.legend()
-    plt.title("Partial Dependence Plot about {}".format(feature))
     plt.show() 
-   
-    plt.plot(list(interest_feature),std_list,color="black")    
-    plt.xlabel(feature)
-    plt.ylabel("Standard Deviation")
-    plt.title("Standard Deviation Line about {}".format(feature))
-    plt.show() 
-    
-    plt.hist(std_list,bins=int(np.sqrt(len(std_list))))
-    plt.title("std dist")
-    plt.show()
-   
 
 def partial_dependence_plot2(data,feature,model):
     interest_feature=np.sort(data[feature].unique())    
@@ -245,61 +203,10 @@ def ale_plot(data,feature,n,model,centered):
         plt.show()
 
 
-partial_dependence_plot(x,"temp",reg)
-partial_dependence_plot2(x,"temp",reg)
-partial_dependence_plot(x,"hum",reg)
-partial_dependence_plot(x,"windspeed",reg)
-
-
 individual_conditional_expectation_plot(x,"temp",reg)
 centered_individual_conditional_expectation_plot(x,"temp",reg,-5.220871)
 
 ale_plot(x,"temp",11,reg,centered=False)
-
-def partial_dependence_plot(data,feature,model):
-    interest_feature=np.sort(data[feature].unique())   
-    fhat=[]
-    std_list=[]
-    data2=data.copy()
-    #data2['temp'].hist(bins=int(np.sqrt(731)))
-    np.random.seed(42)
-    index=np.random.choice(data2.shape[0],500)
-    data2=data2.iloc[index,:].reset_index().drop('index',axis=1)
-    
-    for i in interest_feature:
-        data2[feature]=i
-        temp_result=model.predict(data2)
-        mean_temp=np.mean(temp_result)
-        std_temp=np.std(temp_result)
-        fhat.append(mean_temp)
-        std_list.append(std_temp)
-    
-    max_value=np.max(fhat)
-    min_value=np.min(fhat)
-    q3=np.quantile(fhat,q=0.75)
-    q1=np.quantile(fhat,q=0.25)
-    iqr=q3-q1
-    
-    plt.plot(list(interest_feature),fhat,color="black",label='mean_value')
-    plt.plot(list(interest_feature),np.array(fhat)-1.96*np.array(std_list)/np.sqrt(len(std_list)),color="red",label='Asymtotic belt')
-    plt.plot(list(interest_feature),np.array(fhat)+1.96*np.array(std_list)/np.sqrt(len(std_list)),color="red")
-    
-    plt.xlabel(feature)
-    #plt.ylim(min_value-1.5*iqr,max_value+1.5*iqr)
-    plt.ylabel("Model Predict")
-    plt.legend()
-    plt.title("Partial Dependence Plot about {}".format(feature))
-    plt.show() 
-   
-    plt.plot(list(interest_feature),std_list,color="black")    
-    plt.xlabel(feature)
-    plt.ylabel("Standard Deviation")
-    plt.title("Standard Deviation Line about {}".format(feature))
-    plt.show() 
-    
-    plt.hist(std_list,bins=int(np.sqrt(len(std_list))))
-    plt.title("std dist")
-    plt.show()
 
 def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
     interest_feature=np.sort(data[feature].unique())   
@@ -307,7 +214,6 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
     std_list=[]
     data2=data.copy()
     data2=data2.sort_values('temp').reset_index().drop('index',axis=1)
-    #data2['temp'].hist(bins=int(np.sqrt(731)))
     
     if method=='crude':
         np.random.seed(41)
@@ -333,7 +239,6 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
             temp_result2=model.predict(data4)
             temp_result=(temp_result1+temp_result2)/2
             mean_temp=np.mean(temp_result)
-            #std_temp=np.sqrt(np.var(temp_result1)/1000+np.var(temp_result2)/1000+1/500*np.cov(temp_result1,temp_result2)[0,1])
             std_temp=np.sqrt(np.var(temp_result)/500)
             fhat.append(mean_temp)
             std_list.append(std_temp)
@@ -359,20 +264,28 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
         n2=data2.loc[data2['season_Summer']==1,:].shape[0]
         n3=data2.loc[data2['season_Fall']==1,:].shape[0]
         n4=data2.loc[data2['season_Winter']==1,:].shape[0]
+        p=np.array([n1,n2,n3,n4])/np.sum([n1,n2,n3,n4])
         
         index_list=[]
         
+        total_n=0
         for n,feat in zip([n1,n2,n3,n4],['season_Spring','season_Summer','season_Fall','season_Winter']): 
             np.random.seed(41)
             n=int(n/(n1+n2+n3+n4)*500)
-            index_list=index_list+list(np.random.choice(data2.loc[data2[feat]==1].index,n))
+            total_n+=n
+            index_list.append(np.random.choice(data2.loc[data2[feat]==1].index,n))
         
-        data2=data2.iloc[index_list,:].reset_index().drop('index',axis=1)
         for i in interest_feature:
-            data2[feature]=i
-            temp_result=model.predict(data2)
-            mean_temp=np.mean(temp_result)
-            std_temp=np.sqrt(np.var(temp_result)/500)
+            temp_var=[]
+            temp_value=0
+            for id,j in enumerate(index_list):
+                data3=data2.iloc[j,:].reset_index().drop('index',axis=1)
+                data3[feature]=i
+                temp_result=model.predict(data3)
+                temp_value+=np.sum(temp_result)
+                temp_var.append(np.var(temp_result)/total_n*p[id])
+            mean_temp=temp_value/total_n
+            std_temp=np.sqrt(np.sum(temp_var))
             fhat.append(mean_temp)
             std_list.append(std_temp)
             
@@ -409,18 +322,21 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
     iqr=q3-q1
     
     plt.plot(list(interest_feature),fhat,color="black",label='mean_value')
-    if mode=='confidence':
+    if mode=='confidence1':
         plt.plot(list(interest_feature),np.array(fhat)-1.96*np.array(std_list)/np.sqrt(len(std_list)),color="red",label='Asymtotic belt')
         plt.plot(list(interest_feature),np.array(fhat)+1.96*np.array(std_list)/np.sqrt(len(std_list)),color="red")
     
+    if mode=='confidence2':
+        plt.plot(list(interest_feature),np.array(fhat)-np.array(std_list),color="red",label='Asymtotic belt')
+        plt.plot(list(interest_feature),np.array(fhat)+np.array(std_list),color="red")
+    
     plt.xlabel(feature)
-    #plt.ylim(min_value-1.5*iqr,max_value+1.5*iqr)
     plt.ylabel("Model Predict")
     plt.legend()
     plt.title("Partial Dependence Plot about {}".format(feature))
     plt.show() 
    
-    if mode=='confidence':
+    if (mode=='confidence1')|(mode=='confidence2'):
         plt.plot(list(interest_feature),std_list,color="black")    
         plt.xlabel(feature)
         plt.ylabel("Standard Deviation")
@@ -430,20 +346,75 @@ def partial_dependence_plot(data,feature,model,mode='result',method='crude'):
         plt.hist(std_list,bins=int(np.sqrt(len(std_list))))
         plt.title("std dist")
         plt.show()
+        
+    if mode=='result':
+        return interest_feature, fhat, std_list
 
 partial_dependence_plot(x,"temp",reg,method='crude')
-partial_dependence_plot(x,"temp",reg,mode='confidence',method='crude')
-partial_dependence_plot(x,"temp",reg,mode='confidence',method='antithetic')
-partial_dependence_plot(x,"temp",reg,mode='confidence',method='control')
-partial_dependence_plot(x,"temp",reg,mode='confidence',method='stratified')
-partial_dependence_plot(x,"temp",reg,mode='confidence',method='importance')
+partial_dependence_plot(x,"temp",reg,mode='confidence2',method='crude')
+partial_dependence_plot(x,"temp",reg,mode='confidence2',method='antithetic')
+partial_dependence_plot(x,"temp",reg,mode='confidence2',method='control')
+partial_dependence_plot(x,"temp",reg,mode='confidence2',method='stratified')
+partial_dependence_plot(x,"temp",reg,mode='confidence2',method='importance')
+
+
+a,b1,c1=partial_dependence_plot(x,"temp",reg,mode='result',method='crude')
+_,b2,c2=partial_dependence_plot(x,"temp",reg,mode='result',method='antithetic')
+_,b3,c3=partial_dependence_plot(x,"temp",reg,mode='result',method='control')
+_,b4,c4=partial_dependence_plot(x,"temp",reg,mode='result',method='stratified')
+_,b5,c5=partial_dependence_plot(x,"temp",reg,mode='result',method='importance')
+
+
+a.shape
+
+len(b1)
+len(c1)
 
 
 
+plt.hist(c1,bins=int(np.sqrt(len(c1))),color='red',alpha=0.5,label='crude')
+plt.hist(c2,bins=int(np.sqrt(len(c1))),color='orange',alpha=0.5,label='antithetic')
+plt.hist(c3,bins=int(np.sqrt(len(c1))),color='yellow',alpha=0.5,label='control')
+plt.hist(c4,bins=int(np.sqrt(len(c1))),color='green',alpha=0.5,label='stratified')
+plt.hist(c5,bins=int(np.sqrt(len(c1))),color='blue',alpha=0.5,label='importance')
+plt.legend()
+plt.xlabel('stadard error')
+plt.ylabel('frequency')
+plt.title("standard error distribution")
+plt.show()
+
+mc1=np.mean(c1)
+mc2=np.mean(c2)
+mc3=np.mean(c3)
+mc4=np.mean(c4)
+mc5=np.mean(c5)
 
 
+np.mean(2*1.96*np.array(c1)/np.sqrt(500))
 
+np.mean(2*1.96*np.array(c2)/np.sqrt(500))
+np.mean(2*1.96*np.array(c3)/np.sqrt(500))
+np.mean(2*1.96*np.array(c4)/np.sqrt(500))
+np.mean(2*1.96*np.array(c5)/np.sqrt(500))
 
+np.mean(np.array(c1)/np.array(b1))
+np.mean(np.array(c2)/np.array(b2))
+np.mean(np.array(c3)/np.array(b3))
+np.mean(np.array(c4)/np.array(b4))
+np.mean(np.array(c5)/np.array(b5))
 
+a.shape
+len(c1)
+len(b1)
+
+plt.plot(list(a),b1,color='black',label='Mean Effect')
+for i,j,k,l in zip(np.array([b1,b1,b1,b1,b1]),np.array([c1,c2,c3,c4,c5]),['red','orange','yellow','green','blue'],['CMC','Antithetic','Control','Stratified','Importance']):
+    plt.plot(list(a),i+2*j,color=k,label=l,alpha=0.4)
+    plt.plot(list(a),i-2*j,color=k,alpha=0.4)
+plt.xlabel('Temp',size=12)
+plt.ylabel('Predict',size=12)
+plt.legend()
+plt.title('Estimate 95% C.I. of Marginal Effect each method')
+plt.show()
 
 
