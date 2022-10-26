@@ -15,6 +15,8 @@ Explainable AI Paper Implement
 
     : https://arxiv.org/abs/2108.13654
 
+5. Estimates Partial Dependence function using minimizing variance.
+
 #
 ```console
 @article{,
