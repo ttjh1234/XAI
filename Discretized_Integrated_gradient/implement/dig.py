@@ -2,31 +2,9 @@ import tensorflow
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from module.data import *
 import tensorflow_datasets as tfds
 import os
-import datasets
-import csv
 
-def generate_examples(file_paths, data_filename):
-    for file_path in file_paths:
-        filename = os.path.basename(file_path)
-        if filename == data_filename:
-            with open(file_path, encoding="utf8") as f:
-                reader = csv.DictReader(f, delimiter="\t", quoting=csv.QUOTE_NONE)
-                for idx, row in enumerate(reader):
-                    yield idx, {
-                        "idx": row["index"] if "index" in row else idx,
-                        "sentence": row["sentence"],
-                        "label": int(row["label"]) if "label" in row else -1,
-                    }
-
-os.getcwd()
-
-os.listdir(r"C:\Users\UOS\Desktop\data")
-
-for i in generate_examples(os.listdir(r"C:\Users\UOS\Desktop\data"),'train.tsv'):
-    print(i)
 
 # Plan to Implement
 
