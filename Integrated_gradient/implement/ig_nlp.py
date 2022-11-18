@@ -167,3 +167,19 @@ for i,c in zip(sentence,rgblist):
         
 print(str)
 
+# zero imbedding vector ?
+
+model.summary()
+
+test_model=tf.keras.models.Sequential()
+
+layer_names = [layer.name for layer in model.layers]
+
+for n,i in enumerate(layer_names):
+    if n==0:
+        embed=model.get_layer(i)
+    else:
+        test_model.add(model.get_layer(i))
+
+
+
