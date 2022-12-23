@@ -17,7 +17,9 @@ Explainable AI Paper Implement
 
 5. Estimates Partial Dependence function using minimizing variance.
 
-6. Denoising IG Attribution using gibbs sampling.
+6. Denoising IG Attribution using gibbs sampling. 
+
+: Plan to Implement.
 
 #
 ```console
