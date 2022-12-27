@@ -42,6 +42,8 @@ model.load_state_dict(torch.load(modeldir+'NLP/model/transformer-sentiment.pt'))
 
 # KNN w.r.t Words Embeddings
 
+# Reimplement 1.
+
 def k_nearest_neighbor(tok_embedding_layer,x,k=10,flag=0):
     
     # Generate 0 ~ Vocab_size integer.
@@ -86,6 +88,8 @@ def k_nearest_neighbor(tok_embedding_layer,x,k=10,flag=0):
 
 # monotonize algorithm
 
+# Reimplement 2.
+
 def monotonize_anchor(x,baseline,anchor,perturb_value):
     
     if anchor.dim()==3:
@@ -105,7 +109,7 @@ def monotonize_anchor(x,baseline,anchor,perturb_value):
     return words
 
 
-
+# Reimplement 3.
 # anchor search algorithm
 
 def anchor_greedy(x,baseline,neighbor,perturb_value):
