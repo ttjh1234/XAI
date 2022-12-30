@@ -256,6 +256,8 @@ class CustomDataset(Dataset):
             return x, y
 
 dataset = CustomDataset()
+
+
 datasetsize= len(dataset)
 train_size = int(datasetsize * 0.8)
 valid_size = int(datasetsize * 0.1)
@@ -270,11 +272,14 @@ train_iter = DataLoader(train_dataset, batch_size=64, shuffle=True, drop_last=Fa
 valid_iter = DataLoader(valid_dataset, batch_size=64, shuffle=True, drop_last=False)
 test_iter = DataLoader(test_dataset, batch_size=64, shuffle=True, drop_last=False)
 
+for i in train_iter:
+    break
+
 INPUT_DIM=dataset.vocab_size
 
-HID_DIM = 128
-ENC_LAYERS = 4
-ENC_HEADS = 8
+HID_DIM = 150
+ENC_LAYERS = 3
+ENC_HEADS = 5
 ENC_PF_DIM = 256
 ENC_DROPOUT = 0.1
 TEXT_PAD_IDX=0
@@ -296,7 +301,7 @@ model=sentiment_classification(enc,HID_DIM,src_pad_idx=TEXT_PAD_IDX,device=devic
 optimizer = torch.optim.Adam(model.parameters())
 criterion = nn.BCELoss()
 
-N_EPOCHS = 100
+N_EPOCHS = 1000
 CLIP = 1
 patient=0
 best_valid_loss = float('inf')
@@ -317,12 +322,16 @@ for epoch in tqdm(range(N_EPOCHS)):
     print(f'\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}')
     
     if valid_loss < best_valid_loss:
+        best_epoch=epoch
+        print('Best Epoch : ',best_epoch)
+        
         patient=0
         best_valid_loss = valid_loss
         torch.save(model.state_dict(), './assets/transformer_kor_sentiment.pt')
     else:
+        print('Best Epoch : ',best_epoch)
         patient+=1
-        if patient>10:
+        if patient>20:
             break
 
 model.load_state_dict(torch.load('./assets/transformer_kor_sentiment.pt'))
@@ -331,7 +340,73 @@ print(f'| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |')
 
 accuracy_score_kor(model,train_iter,valid_iter,test_iter)
 
+# 비교군 : simple GRU Model 
 
-
-
+class simpleGRN(nn.Module):
+    def __init__(self,input_dim,emb_hidden,hidden_size,num_layers,num_classes=1):
+        super().__init__()
+        self.num_layers=num_layers
+        self.embedding=nn.Embedding(input_dim,emb_hidden)
+        self.gru=nn.GRU(emb_hidden,hidden_size,num_layers,batch_first=True)
+        self.fc1=nn.Linear(hidden_size,hidden_size)
+        self.fc2=nn.Linear(hidden_size,num_classes)
+        self.activation1=nn.ReLU()
+        self.activation2 = nn.Sigmoid()
         
+    def forward(self, input):
+        out=self.embedding(input)
+        out,_=self.gru(out)
+        out= out[:,-1,:]
+        out=self.activation1(self.fc1(out))
+        out=self.activation2(self.fc2(out))
+        
+        return out
+
+INPUT_DIM=dataset.vocab_size
+HID_DIM = 256
+NUM_LAYERS = 2
+
+comp_model=simpleGRN(input_dim=INPUT_DIM,emb_hidden=HID_DIM*4,hidden_size=HID_DIM,num_layers=NUM_LAYERS).to('cuda')
+
+optimizer = torch.optim.Adam(comp_model.parameters())
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+criterion = nn.BCELoss()
+
+optimizer.state_dict().keys()
+optimizer.state_dict()['param_groups']
+
+N_EPOCHS = 100
+CLIP = 1
+patient=0
+best_valid_loss = float('inf')
+
+for epoch in tqdm(range(N_EPOCHS)):
+    
+    start_time = time.time()
+    
+    train_loss = train_kor(comp_model, train_iter, optimizer, criterion, CLIP)
+    valid_loss = evaluate_kor(comp_model, valid_iter, criterion)
+    
+    end_time = time.time()
+    
+    epoch_mins, epoch_secs = epoch_time(start_time, end_time)
+    
+    print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
+    print(f'\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}')
+    print(f'\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}')
+    
+    if valid_loss < best_valid_loss:
+        patient=0
+        best_valid_loss = valid_loss
+        torch.save(comp_model.state_dict(), './assets/grn_kor_sentiment.pt')
+    else:
+        patient+=1
+        if patient>10:
+            break
+
+comp_model.load_state_dict(torch.load('./assets/grn_kor_sentiment.pt'))
+test_loss = evaluate_kor(comp_model, test_iter, criterion)
+print(f'| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |')
+
+accuracy_score_kor(comp_model,train_iter,valid_iter,test_iter)
+
