@@ -20,15 +20,21 @@ from torch.utils.data import TensorDataset, DataLoader,Dataset, random_split
 import json
 from tqdm import tqdm
 from XAI.Integrated_gradient.implement.ig_pytorch import *
+from module.visualization import *
+
+# 1. Data Fetch & Define Pretrained model 
 
 train_iter,valid_iter,text_iter,INPUT_DIM,TEXT_PAD_IDX, TEXT=imdb_pytorch_load()
 
-# 단어 사전
+## Vocab dict
+
 word2index=TEXT.vocab.stoi
 index2word=TEXT.vocab.itos
 
+## Model Hyperparameter
+
 HID_DIM = 128
-ENC_LAYERS = 4
+ENC_LAYERS = 3
 ENC_HEADS = 8
 ENC_PF_DIM = 512
 ENC_DROPOUT = 0.1
@@ -41,293 +47,52 @@ enc = Encoder(INPUT_DIM,
               ENC_DROPOUT, 
               device)
 
-modeldir=os.getcwd().split("XAI")[0]
-model=sentiment_classification(enc,HID_DIM,src_pad_idx=TEXT_PAD_IDX,device=device).to(device)
+model=sentiment_classification(enc,HID_DIM,src_pad_idx=TEXT_PAD_IDX,device=device).to(device)    
 
-def initialize_weights(m):
-    if hasattr(m, 'weight') and m.weight.dim() > 1:
-        nn.init.xavier_uniform_(m.weight.data)
+## Model load
+model.load_state_dict(torch.load('./assets/transformer_sentiment.pt'))
 
-
-model.apply(initialize_weights)
-
-optimizer = torch.optim.Adam(model.parameters())
-criterion = nn.BCELoss()  
-
-N_EPOCHS = 100
-CLIP = 1
-patient=0
-
-best_valid_loss = float('inf')
-
-for epoch in range(N_EPOCHS):
-    
-    start_time = time.time()
-    
-    train_loss = train(model, train_iter, optimizer, criterion, CLIP)
-    valid_loss = evaluate(model, valid_iter, criterion)
-    
-    end_time = time.time()
-    
-    epoch_mins, epoch_secs = epoch_time(start_time, end_time)
-    print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
-    print(f'\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}')
-    print(f'\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}')
-    if valid_loss < best_valid_loss:
-        best_epoch=epoch
-        print('Best Epoch : ',best_epoch)
-        
-        patient=0
-        best_valid_loss = valid_loss
-        torch.save(model.state_dict(), './assets/transformer_sentiment.pt')
-    else:
-        print('Best Epoch : ',best_epoch)
-        patient+=1
-        if patient>15:
-            break
-    
-model.load_state_dict(torch.load('./assets/transformer-sentiment.pt'))
+## Model Performance Check
+criterion = nn.BCELoss()
 test_loss = evaluate(model, text_iter, criterion)
 print(f'| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |')
 accuracy_score(model,train_iter,valid_iter,text_iter)
 
+# 2. Integrated Gradients 
 
-
-
-
-
-
-
-
-
-
-
-
-
-### 한국어로 모델 재학습 및 test.
-
-class CustomDataset(Dataset): 
-        def __init__(self):
-            with open("./assets/word2idx.json", "r") as f:
-                self.word2idx = json.load(f)
-            with open("./assets/word2freq.json", "r") as f:
-                self.word2freq = json.load(f)
-            with open("./assets/word2prob.json", "r") as f:
-                self.word2prob = json.load(f)
-            with open("./assets/idx2word.json", "r") as f:
-                self.idx2word = json.load(f)
-            self.vocab_size = len(self.word2idx)
-            
-            idx2prob = {}
-            for key, value in self.word2prob.items():
-                idx2prob[self.word2idx.get(key)] = value
-            self.idx2prob = idx2prob
-            
-            self.contexts = np.load('./.data/sentence.npy')
-            self.targets = np.load('./.data/labels.npy')
-            
-            
-        def __len__(self): 
-            return len(self.targets)
-
-        def __getitem__(self, idx): 
-            x = torch.tensor(self.contexts[idx], dtype=torch.long)
-            y = torch.tensor(self.targets[idx], dtype=torch.long)
-            return x, y
-
-dataset = CustomDataset()
-
-datasetsize= len(dataset)
-train_size = int(datasetsize * 0.8)
-valid_size = int(datasetsize * 0.1)
-test_size = datasetsize - train_size - valid_size
-train_dataset, valid_dataset, test_dataset = random_split(dataset, [train_size, valid_size, test_size])
-
-print(f"Training Data Size : {len(train_dataset)}")
-print(f"Validation Data Size : {len(valid_dataset)}")
-print(f"Testing Data Size : {len(test_dataset)}")
-
-train_iter = DataLoader(train_dataset, batch_size=64, shuffle=True, drop_last=False)
-valid_iter = DataLoader(valid_dataset, batch_size=64, shuffle=True, drop_last=False)
-test_iter = DataLoader(test_dataset, batch_size=64, shuffle=True, drop_last=False)
-
-INPUT_DIM=dataset.vocab_size
-
-HID_DIM = 150
-ENC_LAYERS = 3
-ENC_HEADS = 5
-ENC_PF_DIM = 256
-ENC_DROPOUT = 0.1
-TEXT_PAD_IDX=0
-
-device='cuda'
-
-enc = Encoder(INPUT_DIM, 
-              HID_DIM, 
-              ENC_LAYERS, 
-              ENC_HEADS, 
-              ENC_PF_DIM, 
-              ENC_DROPOUT,
-              device,
-              max_length=50, 
-            )
-
-model=sentiment_classification(enc,HID_DIM,src_pad_idx=TEXT_PAD_IDX,device=device).to(device)
-
-optimizer = torch.optim.Adam(model.parameters())
-criterion = nn.BCELoss()
-
-N_EPOCHS = 1000
-CLIP = 1
-patient=0
-best_valid_loss = float('inf')
-
-for epoch in tqdm(range(N_EPOCHS)):
-    
-    start_time = time.time()
-    
-    train_loss = train_kor(model, train_iter, optimizer, criterion, CLIP)
-    valid_loss = evaluate_kor(model, valid_iter, criterion)
-    
-    end_time = time.time()
-    
-    epoch_mins, epoch_secs = epoch_time(start_time, end_time)
-    
-    print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
-    print(f'\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}')
-    print(f'\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}')
-    
-    if valid_loss < best_valid_loss:
-        best_epoch=epoch
-        print('Best Epoch : ',best_epoch)
-        
-        patient=0
-        best_valid_loss = valid_loss
-        torch.save(model.state_dict(), './assets/transformer_kor_sentiment.pt')
-    else:
-        print('Best Epoch : ',best_epoch)
-        patient+=1
-        if patient>20:
-            break
-
-model.load_state_dict(torch.load('./assets/transformer_kor_sentiment.pt'))
-test_loss = evaluate_kor(model, test_iter, criterion)
-print(f'| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |')
-
-accuracy_score_kor(model,train_iter,valid_iter,test_iter)
-
-# 비교군 : simple GRU Model 
-
-class simpleGRU(nn.Module):
-    def __init__(self,input_dim,emb_hidden,hidden_size,num_layers,num_classes=1):
-        super().__init__()
-        self.num_layers=num_layers
-        self.embedding=nn.Embedding(input_dim,emb_hidden)
-        self.gru=nn.GRU(emb_hidden,hidden_size,num_layers,batch_first=True)
-        #self.fc1=nn.Linear(hidden_size,hidden_size)
-        self.fc1=nn.Linear(hidden_size,num_classes)
-        #self.fc2=nn.Linear(hidden_size,num_classes)
-        #self.activation1=nn.ReLU()
-        self.activation2 = nn.Sigmoid()
-        
-    def forward(self, input):
-        if input.dim()==2:
-            out=self.embedding(input)
-        else:
-            out=input
-        out,_=self.gru(out)
-        out= out[:,-1,:]
-        out=self.activation2(self.fc1(out))
-        #out=self.activation2(self.fc2(out))
-        
-        return out
-
-INPUT_DIM=dataset.vocab_size
-HID_DIM = 128
-NUM_LAYERS = 4
-
-comp_model=simpleGRU(input_dim=INPUT_DIM,emb_hidden=HID_DIM,hidden_size=HID_DIM,num_layers=NUM_LAYERS).to('cuda')
-
-optimizer = torch.optim.Adam(comp_model.parameters())
-#scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.1,last_epoch=-1,verbose=True)
-criterion = nn.BCELoss()
-
-N_EPOCHS = 100
-CLIP = 1
-patient=0
-best_valid_loss = float('inf')
-
-for epoch in tqdm(range(N_EPOCHS)):
-    
-    start_time = time.time()
-    
-    train_loss = train_kor(comp_model, train_iter, optimizer, criterion, CLIP)
-    valid_loss = evaluate_kor(comp_model, valid_iter, criterion)
-    
-    end_time = time.time()
-    
-    epoch_mins, epoch_secs = epoch_time(start_time, end_time)
-    
-    print(f'Epoch: {epoch+1:02} | Time: {epoch_mins}m {epoch_secs}s')
-    print(f'\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}')
-    print(f'\t Val. Loss: {valid_loss:.3f} |  Val. PPL: {math.exp(valid_loss):7.3f}')
-    
-    if valid_loss < best_valid_loss:
-        patient=0
-        best_valid_loss = valid_loss
-        torch.save(comp_model.state_dict(), './assets/grn_kor_sentiment.pt')
-    else:
-        patient+=1
-        if patient>10:
-            break
-
-comp_model.load_state_dict(torch.load('./assets/grn_kor_sentiment.pt'))
-test_loss = evaluate_kor(comp_model, test_iter, criterion)
-print(f'| Test Loss: {test_loss:.3f} | Test PPL: {math.exp(test_loss):7.3f} |')
-
-accuracy_score_kor(comp_model,train_iter,valid_iter,test_iter)
-
-for redata in train_iter:
+## Get Test Sample
+ 
+for i in train_iter:
     break
 
-tdata=redata[0][3]
-tlabel=redata[1][3]
+test_data=i.text[1]
+test_label=i.label[1]
 
+## Get token embedding layer of model
+emb=model.encoder.tok_embedding
 
+## Define baseline & set device
+baseline=torch.ones(500).type(torch.long).to(device)
+test_data=i.text[1].to(device)
 
-baseline=torch.zeros(50).type(dtype=torch.long).to(device)
-input=tdata.to(device)
+## Calculate IG attribute 
+ig=integrated_gradients(baseline=baseline,input=test_data,model=model,model_embed=emb)
 
-ig=integrated_gradients(baseline,input,comp_model)
+## Sum over embedding dim
+ig=torch.sum(ig,dim=1)
 
-ig2=torch.sum(ig,dim=1)
+## Change Token to Words  
+sample_text=''
+for i in test_data.to('cpu').numpy():
+    sample_text=sample_text+' '+index2word[i]
 
-def get_color(attr):
-    if attr > 0:
-        g = int(128*attr) + 127
-        b = 128 - int(64*attr)
-        r = 128 - int(64*attr)
-    else:
-        g = 128 + int(64*attr)
-        b = 128 + int(64*attr)
-        r = int(-128*attr) + 127
-    return r,g,b
+## Attribute Scaling (Bound value : Maximum Absolute Value)
+ig2=ig/torch.max(torch.abs(ig.max()),torch.abs(ig.min()))
 
-rgblist=[]
+## Plot Results
+print_html_language(test_data.to('cpu'),ig2,index2word)
 
-for i in ig2:
-    rgblist.append(get_color(i))
-
-for i in tdata.numpy():
-    print(dataset.idx2word[str(i)])
-
-sentence=''
-for i,c in zip(tdata.numpy(),rgblist):
-    if i!=0:
-        word=dataset.idx2word[str(i)]
-        sentence=sentence+"\033[38;2;{};{};{}m {} \033[0m".format(c[0],c[1],c[2],word)
-
-print(sentence)
+# 3. Discretized Integrated Gradients
 
 
 

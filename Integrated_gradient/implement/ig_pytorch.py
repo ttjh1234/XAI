@@ -27,6 +27,7 @@ def interpolate_language(input,baseline,alphas,embedding_layer):
     input_x=torch.unsqueeze(input_x,axis=0)
     delta = input_x - baseline_x
     sentence = baseline_x +  alphas_x * delta
+    print(sentence.shape)
     return sentence
 
 def compute_gradients(sentence,model):
@@ -34,7 +35,7 @@ def compute_gradients(sentence,model):
     model.zero_grad()
     output=model(sentence).sum()
     input_grad=torch.autograd.grad(output,sentence)[0]
-    
+    print(input_grad.shape)
     return input_grad
 
 def integral_approximation(gradients):
@@ -43,9 +44,9 @@ def integral_approximation(gradients):
     integrated_gradients = torch.mean(grads, dim=0)
     return integrated_gradients
 
-def integrated_gradients(baseline,input,model,m_steps=300,batch_size=32,device='cuda'):
+def integrated_gradients(baseline,input,model,model_embed,m_steps=300,batch_size=32,device='cuda'):
     # 0. Take Embedding Layer
-    embedding=model.embedding.to(device)
+    embedding=model_embed
     
     # 1. Generate alphas
     alphas = torch.linspace(start=0, end= 1,steps=m_steps).to(device)
