@@ -21,6 +21,7 @@ import json
 from tqdm import tqdm
 from XAI.Integrated_gradient.implement.ig_pytorch import *
 from module.visualization import *
+from module.discretized_integrated_gradient import *
 
 # 1. Data Fetch & Define Pretrained model 
 
@@ -94,6 +95,24 @@ print_html_language(test_data.to('cpu'),ig2,index2word)
 
 # 3. Discretized Integrated Gradients
 
+adj=create_knn_matrix(model.encoder.tok_embedding)
+word_features=model.encoder.tok_embedding.weight.cpu().detach().numpy()
+word_idx_map=word2index
 
+path=making_interpolation_path(test_data.to('cpu'), baseline.to('cpu'), device, (word_idx_map, word_features, adj), steps=30, strategy='greedy')
+
+dig=discretized_integrated_gradients(path,model)
+
+dig=torch.sum(dig,dim=1)
+
+sample_text=''
+for i in test_data.to('cpu').numpy():
+    sample_text=sample_text+' '+index2word[i]
+
+## Attribute Scaling (Bound value : Maximum Absolute Value)
+dig2=dig/torch.max(torch.abs(dig.max()),torch.abs(dig.min()))
+
+## Plot Results
+print_html_language(test_data.to('cpu'),dig2,index2word)
 
 

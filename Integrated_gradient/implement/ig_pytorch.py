@@ -27,15 +27,15 @@ def interpolate_language(input,baseline,alphas,embedding_layer):
     input_x=torch.unsqueeze(input_x,axis=0)
     delta = input_x - baseline_x
     sentence = baseline_x +  alphas_x * delta
-    print(sentence.shape)
+    
     return sentence
 
 def compute_gradients(sentence,model):
-    model.train()
+    model.eval()
     model.zero_grad()
     output=model(sentence).sum()
     input_grad=torch.autograd.grad(output,sentence)[0]
-    print(input_grad.shape)
+
     return input_grad
 
 def integral_approximation(gradients):

@@ -19,7 +19,7 @@ Explainable AI Paper Implement
 
 6. Denoising IG Attribution using gibbs sampling. 
 
-: Plan to Implement.
+7. Plan to Experiment : Model tuning using IG Attribute Map.
 
 #
 ```console
