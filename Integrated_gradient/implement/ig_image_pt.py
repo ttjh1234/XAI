@@ -73,6 +73,11 @@ def scaled_attribute(attribute):
     scaled_attribute=np.transpose(scaled_attribute,[1,2,0])
     return scaled_attribute
 
+def batch_scaled_attribute_torch(attribute):
+    attribute=torch.abs(attribute)
+    scaled_attribute = attribute / torch.max(attribute.view(-1,3*32*32),dim=1)[0].view(-1,1,1,1)
+    return scaled_attribute
+
 def batch_interpolate_images(baseline,image,alphas,device):
     alphas_x = alphas.unsqueeze(1).unsqueeze(2).unsqueeze(3)
     baseline_x = torch.unsqueeze(baseline, dim=0)
