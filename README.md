@@ -19,7 +19,9 @@ Explainable AI Paper Implement
 
 6. Denoising IG Attribution using gibbs sampling. 
 
-7. Plan to Experiment : Model tuning using IG Attribute Map.
+7. Guided Integrated Gradients, Andrei Kapishnikov, Subhashini Venugopalan, etc.
+
+    : https://arxiv.org/abs/2106.09788
 
 #
 ```console
