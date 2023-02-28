@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from tqdm import tqdm
 from copy import deepcopy
 from collections import defaultdict as ddict
-
+from torchvision import transforms
 import matplotlib as mpl
 from torch.utils.data import TensorDataset, DataLoader,Dataset, random_split
 import json
@@ -17,18 +17,44 @@ from tqdm import tqdm
 
 # A very small number for comparing floating point values.
 EPSILON = 1E-9
+transform=transforms.Normalize((0.4914, 0.4822, 0.4465), (0.247, 0.243, 0.261))
 
 def l1_distance(x1,x2):
     return torch.abs(x1-x2).sum()
 
 def translate_x_to_alpha(x,x_input,x_baseline):    
-    return torch.where(x_input-x_baseline !=0, (x-x_baseline)/(x_input-x_baseline),torch.ones_like(x,dtype=torch.float32)*torch.tensor(float('nan')))
+    return torch.where((x_input-x_baseline) !=0 , (x-x_baseline)/(x_input-x_baseline),torch.ones_like(x,dtype=torch.float32)*torch.tensor(float('nan')))
 
 def translate_alpha_to_x(alpha,x_input,x_baseline):
     assert 0 <= alpha <= 1.0        
     return x_baseline + (x_input-x_baseline) * alpha
 
+'''
+def scale_data(image):
+    
+    image[0,0,:,:]=(image[0,0,:,:]-0.4914)/0.247
+    image[0,1,:,:]=(image[0,1,:,:]-0.4822)/0.243
+    image[0,2,:,:]=(image[0,2,:,:]-0.4465)/0.261
+    
+    return image
+'''
 
+def guided_compute_gradients(images,model,label,device):
+    model.eval()
+    model.zero_grad()
+    images=transform.forward(images)
+    images = torch.tensor(images, requires_grad=True, dtype=torch.float32, device=device)
+    output=model(images)
+    m = torch.nn.Softmax(dim=1)
+    output = m(output)
+
+    outputs = output[:,label]
+    grads = torch.autograd.grad(outputs, images,grad_outputs=torch.ones_like(outputs))[0]
+    
+    return grads
+
+
+'''
 def compute_gradients(images,model,label):
     model.eval()
     model.zero_grad()
@@ -37,6 +63,7 @@ def compute_gradients(images,model,label):
     input_grad=torch.autograd.grad(output,images)[0]
     
     return input_grad
+'''
 
 
 def guided_ig(x_input, x_baseline, label ,model, steps=128, fraction=0.25, max_dist=0.02,device='cuda:1'):
@@ -52,9 +79,8 @@ def guided_ig(x_input, x_baseline, label ,model, steps=128, fraction=0.25, max_d
     
     for step in range(steps):
         
-        x = torch.tensor(x, requires_grad=True, dtype=torch.float32, device=device)
         # Calculate gradients and make a copy.
-        grad_actual = compute_gradients(x, model, label)
+        grad_actual = guided_compute_gradients(x, model, label,device)
         grad = grad_actual.clone().detach()
         
         # Calculate current step alpha and the ranges of allowed values for this step.
@@ -93,7 +119,7 @@ def guided_ig(x_input, x_baseline, label ,model, steps=128, fraction=0.25, max_d
             
             # Features that reached `x_max` should not be included in the selection.
             # Assign very high gradients to them so they are excluded.
-            grad[x == x_max] = torch.tensor(float('inf'))
+            grad = torch.where(x == x_max,torch.ones_like(grad)*float('inf'),grad) 
             
             threshold = torch.quantile(torch.abs(grad), fraction, interpolation='lower')
             s = torch.logical_and(torch.abs(grad) <= threshold, ~torch.isinf(grad))
