@@ -89,10 +89,17 @@ def batch_interpolate_images(baseline,image,alphas,device):
     return images
 
 def batch_compute_gradients(images,model,label):
+<<<<<<< HEAD
     #model.eval()
     model.zero_grad()
     output=model(images)
     output_label=torch.gather(output,1,label.unsqueeze(1)).squeeze(1).sum()
+=======
+    model.eval()
+    model.zero_grad()
+    output=model(images)
+    output_label=torch.gather(output,dim=1,index=label.unsqueeze(1)).squeeze(1).sum()
+>>>>>>> c5e376b69c4222866f60a38a74fa180a865fb8dc
     
     input_grad=torch.autograd.grad(output_label,images)[0]
     
@@ -121,16 +128,25 @@ def batch_integrated_gradients(baseline,image,model,label,m_steps=128,batch_size
                                                 alphas=alphas,
                                                 device=device)
     
+<<<<<<< HEAD
     label2=label.reshape(-1,1)
     interpolated_label=label2.expand(image.shape[0],m_steps).reshape(-1)
        
     # Batch alpha images
     data=TensorDataset(interpolated_inputs,interpolated_label)
     ds = DataLoader(data, batch_size=batch_size, shuffle=False, drop_last=False)
+=======
+    interpolated_label=label.tile(m_steps).view(-1,m_steps).T.contiguous().view(-1).to(device)
+       
+    # Batch alpha images
+    data=TensorDataset(interpolated_inputs,interpolated_label)
+    ds = DataLoader(data, batch_size=128, shuffle=False, drop_last=False)
+>>>>>>> c5e376b69c4222866f60a38a74fa180a865fb8dc
     
     for batch in ds:
 
         # 3. Compute gradients between model outputs and interpolated inputs
+<<<<<<< HEAD
         batch_gradients = batch_compute_gradients(images=batch[0],model=model,label=batch[1])
 
         # 4. Average integral approximation. Summing integrated gradients across batches.        
@@ -139,4 +155,22 @@ def batch_integrated_gradients(baseline,image,model,label,m_steps=128,batch_size
        
     # 5. Scale integrated gradients with respect to input
     scaled_integrated_gradients = (image - baseline.unsqueeze(0)) * batch_ig_tensor / m_steps
+=======
+        
+        batch_gradients = batch_compute_gradients(images=batch[0],model=model,label=batch[1])
+
+        # 4. Average integral approximation. Summing integrated gradients across batches.
+        
+        batch_ig_tensor = torch.cat([batch_ig_tensor,batch_integral_approximation(gradients=batch_gradients).unsqueeze(0)],dim=0)
+        '''
+        if (n+1)%10==0:
+            sub_ig+=batch_integral_approximation(gradients=batch_gradients)
+            batch_ig_tensor = torch.cat([batch_ig_tensor,sub_ig.unsqueeze(0)],dim=0)
+            sub_ig=0
+        else:
+            sub_ig+=batch_integral_approximation(gradients=batch_gradients)
+        '''
+    # 5. Scale integrated gradients with respect to input
+    scaled_integrated_gradients = (image - baseline.unsqueeze(0)) * batch_ig_tensor/m_steps
+>>>>>>> c5e376b69c4222866f60a38a74fa180a865fb8dc
     return scaled_integrated_gradients
